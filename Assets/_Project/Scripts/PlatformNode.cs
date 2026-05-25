@@ -9,6 +9,7 @@ public class PlatformNode : NetworkBehaviour
     [Header("Configuración Visual")]
     [SerializeField] private Renderer platformRenderer;
     [SerializeField] private Color warningColor = Color.red;
+    [SerializeField] private Color[] platformColors;
     private Color originalColor;
 
     [Header("Configuración de Físicas")]
@@ -21,11 +22,21 @@ public class PlatformNode : NetworkBehaviour
     {
         if (rb == null) rb = GetComponent<Rigidbody>();
         if (platformRenderer == null) platformRenderer = GetComponent<Renderer>();
-        
+
         // Guardamos el color original (ej. el material de madera desgastada)
         if (platformRenderer != null)
         {
-            originalColor = platformRenderer.material.color;
+            // Si pusimos colores en la lista, escoge uno al azar
+            if (platformColors.Length > 0)
+            {
+                originalColor = platformColors[Random.Range(0, platformColors.Length)];
+                platformRenderer.material.color = originalColor;
+            }
+            else
+            {
+                // Si la lista está vacía, guarda el color que ya tenía
+                originalColor = platformRenderer.material.color;
+            }
         }
     }
 

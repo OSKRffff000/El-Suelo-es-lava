@@ -14,71 +14,65 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private float groundCheckRadius = 0.3f;
     [SerializeField] private LayerMask groundLayer;
 
+    [Header("Mecánica de Empuje")]
+    [SerializeField] private float pushForce = 15f; // Qué tan lejos vuela el rival
+    [SerializeField] private float pushCooldown = 3f; // Segundos de recarga
+    [SerializeField] private float pushRadius = 1.5f; // Área de impacto del golpe
+    private float lastPushTime = -10f; // Control interno del tiempo
+
     private Rigidbody rb;
     private bool isGrounded;
     private Vector2 moveInput;
 
-    // Referencias directas al nuevo Input System
     private InputAction moveAction;
     private InputAction jumpAction;
+    private InputAction pushAction; // Nueva acción para empujar
+
+    private Unity.Cinemachine.CinemachineCamera playerCam;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        
-        // Creamos las acciones programáticamente para conectarlas directo a los botones de la pantalla
+
         moveAction = new InputAction("Move", binding: "<Gamepad>/leftStick");
         jumpAction = new InputAction("Jump", binding: "<Gamepad>/buttonSouth");
+        // Conectamos el nuevo botón de empuje
+        pushAction = new InputAction("Push", binding: "<Gamepad>/buttonWest");
 
-        // Nos suscribimos al evento de presionar el botón de salto
         jumpAction.performed += context => TryJump();
-    }
-
-    public override void OnNetworkSpawn()
-    {
-        // LA MAGIA: Verificamos si este jugador nos pertenece a nosotros (nuestra pantalla)
-        if (IsOwner)
-        {
-            // 1. Buscamos la cámara de Cinemachine 3.x que pusimos en la escena
-            var cinemachineCamera = Object.FindFirstObjectByType<Unity.Cinemachine.CinemachineCamera>();
-            
-            if (cinemachineCamera != null)
-            {
-                // 2. Le asignamos nuestro propio cuerpo (transform) como el objetivo a seguir
-                cinemachineCamera.Follow = this.transform;
-                
-                // Opcional: También podemos hacer que lo mire directamente
-                cinemachineCamera.LookAt = this.transform;
-            }
-            else
-            {
-                Debug.LogWarning("¡El jugador no encontró la cámara de Cinemachine en la escena!");
-            }
-        }
+        pushAction.performed += context => TryPush(); // Suscribimos la función de empuje
     }
 
     private void OnEnable()
     {
         moveAction.Enable();
         jumpAction.Enable();
+        pushAction.Enable();
     }
 
     private void OnDisable()
     {
         moveAction.Disable();
         jumpAction.Disable();
+        pushAction.Disable();
         jumpAction.performed -= context => TryJump();
+        pushAction.performed -= context => TryPush();
     }
 
     private void Update()
     {
-        // LA REGLA DE ORO: Solo procesamos inputs si este jugador nos pertenece en la red
         if (!IsOwner) return;
 
-        // Leer el valor del joystick en pantalla
-        moveInput = moveAction.ReadValue<Vector2>();
+        if (playerCam == null)
+        {
+            playerCam = Object.FindFirstObjectByType<Unity.Cinemachine.CinemachineCamera>();
+            if (playerCam != null)
+            {
+                playerCam.Follow = this.transform;
+            }
+        }
 
-        // Crear una pequeña esfera invisible en los pies para verificar si tocamos la capa "Suelo"
+        moveInput = moveAction.ReadValue<Vector2>();
         isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
     }
 
@@ -86,14 +80,9 @@ public class PlayerController : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        // Movimiento físico: Modificamos la velocidad directamente para un control ágil
-        // Mantenemos la velocidad en Y intacta para que la gravedad y los saltos funcionen
         Vector3 targetVelocity = new Vector3(moveInput.x * moveSpeed, rb.linearVelocity.y, moveInput.y * moveSpeed);
-        
-        // Interpolación suave para que el personaje no arranque/pare de golpe de forma robótica
         rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, targetVelocity, 15f * Time.fixedDeltaTime);
 
-        // Opcional: Hacer que el personaje mire hacia donde camina
         Vector3 lookDirection = new Vector3(moveInput.x, 0, moveInput.y);
         if (lookDirection.magnitude > 0.1f)
         {
@@ -105,16 +94,90 @@ public class PlayerController : NetworkBehaviour
     private void TryJump()
     {
         if (!IsOwner) return;
-
         if (isGrounded)
         {
-            // Aplicamos un impulso hacia arriba
-            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z); // Resetea velocidad Y para saltos consistentes
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
     }
 
-    // Para visualizar la esfera del GroundCheck en el editor de Unity
+    // --- LÓGICA DE EMPUJE ---
+    private void TryPush()
+    {
+        if (!IsOwner) return;
+
+        // Comprobamos si ya pasaron los 3 segundos de recarga
+        if (Time.time - lastPushTime < pushCooldown)
+        {
+            Debug.Log("Empuje recargando... faltan: " + (pushCooldown - (Time.time - lastPushTime)).ToString("F1") + "s");
+            return;
+        }
+
+        // Reiniciamos el cronómetro
+        lastPushTime = Time.time;
+
+        // Creamos una esfera invisible frente al jugador para detectar a quién golpeamos
+        Vector3 pushCenter = transform.position + transform.forward * 1f;
+        Collider[] hits = Physics.OverlapSphere(pushCenter, pushRadius);
+
+        foreach (var hit in hits)
+        {
+            // Verificamos que sea un jugador y que no seamos nosotros mismos
+            if (hit.CompareTag("Player") && hit.gameObject != this.gameObject)
+            {
+                if (hit.TryGetComponent<NetworkObject>(out NetworkObject targetNetObj))
+                {
+                    // 1. Calculamos la dirección (desde mí hacia él)
+                    Vector3 pushDirection = (hit.transform.position - transform.position);
+
+                    // 2. Anulamos por completo el eje Y (vertical) para que no lo levante
+                    pushDirection.y = 0f;
+
+                    // 3. Normalizamos el vector (esto asegura que el empuje sea igual de fuerte sin importar la distancia)
+                    pushDirection = pushDirection.normalized;
+
+                    // Le enviamos la orden al servidor
+                    RequestPushServerRpc(targetNetObj.NetworkObjectId, pushDirection);
+                    break; // Solo empujamos a la primera persona que toquemos por clic
+                }
+            }
+        }
+    }
+
+    // 1. El Cliente le avisa al Servidor
+    [ServerRpc]
+    private void RequestPushServerRpc(ulong targetNetworkObjectId, Vector3 direction)
+    {
+        // El Servidor busca al jugador que recibió el golpe
+        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(targetNetworkObjectId, out NetworkObject targetObject))
+        {
+            if (targetObject.TryGetComponent<PlayerController>(out PlayerController targetController))
+            {
+                // Configuramos el mensaje para que SOLO le llegue al jugador afectado
+                ClientRpcParams clientRpcParams = new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { targetObject.OwnerClientId } }
+                };
+
+                // El servidor le da la orden a ese celular de salir volando
+                targetController.ApplyPushClientRpc(direction, clientRpcParams);
+            }
+        }
+    }
+
+    // 2. El celular de la víctima recibe la orden y aplica la fuerza
+    [ClientRpc]
+    private void ApplyPushClientRpc(Vector3 direction, ClientRpcParams clientRpcParams = default)
+    {
+        if (!IsOwner) return; // Verificamos por seguridad que sea mi propio personaje
+
+        // Detenemos cualquier movimiento previo para que el golpe se sienta en seco
+        rb.linearVelocity = Vector3.zero;
+
+        // ¡Salimos volando!
+        rb.AddForce(direction * pushForce, ForceMode.Impulse);
+    }
+
     private void OnDrawGizmosSelected()
     {
         if (groundCheck != null)
@@ -122,5 +185,9 @@ public class PlayerController : NetworkBehaviour
             Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
+
+        // Dibuja una esfera roja en el editor de Unity para que veas hasta dónde llega tu golpe
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position + transform.forward * 1f, pushRadius);
     }
 }

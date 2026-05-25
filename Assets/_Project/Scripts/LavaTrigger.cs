@@ -21,7 +21,14 @@ public class LavaTrigger : MonoBehaviour
             else if (other.CompareTag("Player"))
             {
                 Debug.Log($"El jugador {netObj.OwnerClientId} ha tocado la lava.");
-                // Aquí conectarás más adelante el sistema de reaparición o eliminación
+
+                // Le avisamos al GameManager que reste a este jugador (Solo en el servidor)
+                if (NetworkManager.Singleton.IsServer && GameManager.Instance != null)
+                {
+                    GameManager.Instance.PlayerEliminated(netObj.OwnerClientId);
+                }
+
+                netObj.Despawn();
             }
         }
     }
