@@ -276,7 +276,7 @@ RectTransform:
   m_GameObject: {fileID: 410072021}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.9089272, y: 9.669721, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1839327862}
@@ -284,7 +284,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.000011444, y: -281}
+  m_AnchoredPosition: {x: -13, y: -1262}
   m_SizeDelta: {x: 960, y: 56.1409}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &459158551
@@ -419,7 +419,7 @@ RectTransform:
   m_GameObject: {fileID: 712660728}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.6653, y: 3.7104, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 459158552}
@@ -495,7 +495,7 @@ RectTransform:
   m_GameObject: {fileID: 978264930}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.8790104, y: 9.754172, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1707737837}
@@ -503,7 +503,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.000011444, y: -213}
+  m_AnchoredPosition: {x: -13, y: -695}
   m_SizeDelta: {x: 960, y: 53.1012}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &978264932
@@ -694,7 +694,7 @@ RectTransform:
   m_GameObject: {fileID: 1707737836}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2.2013, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 978264931}
@@ -846,10 +846,10 @@ MonoBehaviour:
   m_MaxConnectAttempts: 60
   m_DisconnectTimeoutMS: 30000
   ConnectionData:
-    Address: 127.0.0.1
+    Address: 192.168.0.6
     Port: 7777
     WebSocketPath: /
-    ServerListenAddress: 127.0.0.1
+    ServerListenAddress: 192.168.0.6
     ClientBindPort: 0
   DebugSimulator:
     PacketDelayMS: 0
@@ -939,7 +939,7 @@ RectTransform:
   m_GameObject: {fileID: 1839327861}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.8596, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 410072025}
@@ -1297,7 +1297,7 @@ RectTransform:
   m_GameObject: {fileID: 2086633904}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1, y: 3.8431, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 459158552}

@@ -71,7 +71,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 3a57d028b587817ffabc85af187ac5af, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -229,4 +229,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   platformRenderer: {fileID: 0}
   warningColor: {r: 1, g: 0, b: 0, a: 1}
+  platformColors: []
   rb: {fileID: 0}
+  shakeIntensity: 0.07
+  blinkSpeed: 17

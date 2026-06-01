@@ -54,6 +54,9 @@ public class GameManager : NetworkBehaviour
         isMatchActive = true;
         Debug.Log("¡El suelo es lava!");
 
+        // NUEVO: Puntuación por tiempo
+        StartCoroutine(SurvivalScoreRoutine());
+
         float currentWaitTime = timeBetweenCollapses;
 
         // 4. Bucle principal del juego
@@ -96,6 +99,8 @@ public class GameManager : NetworkBehaviour
         isMatchActive = false;
         ulong winnerId = 9999;
 
+        bool unlockedUntouchable = false;
+
         if (playersAlive == 1)
         {
             foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
@@ -104,6 +109,16 @@ public class GameManager : NetworkBehaviour
                 if (client.ClientId != loserId)
                 {
                     winnerId = client.ClientId;
+                    
+                    // Validación de logro: Acróbata Intocable
+                    if (client.PlayerObject != null)
+                    {
+                        PlayerController winnerController = client.PlayerObject.GetComponent<PlayerController>();
+                        if (winnerController != null && !winnerController.hasBeenPushed.Value)
+                        {
+                            unlockedUntouchable = true;
+                        }
+                    }
                     break;
                 }
             }
@@ -111,8 +126,31 @@ public class GameManager : NetworkBehaviour
 
         if (ArenaUIManager.Instance != null)
         {
-            ArenaUIManager.Instance.ShowGameOverClientRpc(winnerId);
+            ArenaUIManager.Instance.ShowGameOverClientRpc(winnerId, unlockedUntouchable);
+        }
+    }
+
+    // Corrutina que se ejecuta solo en el servidor para dar puntos periódicamente
+    private System.Collections.IEnumerator SurvivalScoreRoutine()
+    {
+        // Bucle infinito mientras el juego esté activo
+        while (isMatchActive)
+        {
+            // Esperamos 1 segundo
+            yield return new UnityEngine.WaitForSeconds(1f);
+
+            // Buscamos a todos los jugadores y les damos 1 punto si siguen vivos
+            foreach (var client in Unity.Netcode.NetworkManager.Singleton.ConnectedClientsList)
+            {
+                if (client.PlayerObject != null)
+                {
+                    PlayerController player = client.PlayerObject.GetComponent<PlayerController>();
+                    if (player != null)
+                    {
+                        player.AddSurvivalPoints(1);
+                    }
+                }
+            }
         }
     }
 }
-    

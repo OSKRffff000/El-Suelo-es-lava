@@ -10,15 +10,18 @@ public class ArenaUIManager : NetworkBehaviour
     [Header("Elementos de UI")]
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private TextMeshProUGUI winnerText;
+    
+    [Header("Logros")]
+    [SerializeField] private GameObject achievementPanel;
 
     private void Awake()
     {
         Instance = this;
     }
 
-    // Ahora recibimos el ID del ganador en lugar del texto
+    // Ahora recibimos el ID del ganador y si desbloqueó el logro
     [ClientRpc]
-    public void ShowGameOverClientRpc(ulong winnerId)
+    public void ShowGameOverClientRpc(ulong winnerId, bool showUntouchableAchievement = false)
     {
         gameOverPanel.SetActive(true);
 
@@ -32,6 +35,12 @@ public class ArenaUIManager : NetworkBehaviour
             // Si mi ID local es igual al ID del ganador
             winnerText.text = "¡Sobreviviste!";
             winnerText.color = Color.green; // Opcional: ponerlo verde
+            
+            // Mostrar logro si se cumplió la condición
+            if (showUntouchableAchievement && achievementPanel != null)
+            {
+                achievementPanel.SetActive(true);
+            }
         }
         else
         {

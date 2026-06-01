@@ -1,10 +1,20 @@
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : NetworkBehaviour
 {
+    // NetworkVariable para la puntuación (Solo escritura por parte del Servidor, lectura para todos)
+    public NetworkVariable<int> Score = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    
+    // NUEVO: Variable para el logro "Acróbata Intocable"
+    public NetworkVariable<bool> hasBeenPushed = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+    // Evento local para actualizar la UI sin depender del Update
+    public static event Action OnScoreChanged;
+
     [Header("Configuración de Movimiento")]
     [SerializeField] private float moveSpeed = 7f;
     [SerializeField] private float jumpForce = 8f;
@@ -59,13 +69,31 @@ public class PlayerController : NetworkBehaviour
         pushAction.performed -= context => TryPush();
     }
 
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        Score.OnValueChanged += (int previousValue, int newValue) =>
+        {
+            OnScoreChanged?.Invoke();
+        };
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        base.OnNetworkDespawn();
+        Score.OnValueChanged -= (int previousValue, int newValue) =>
+        {
+            OnScoreChanged?.Invoke();
+        };
+    }
+
     private void Update()
     {
         if (!IsOwner) return;
 
         if (playerCam == null)
         {
-            playerCam = Object.FindFirstObjectByType<Unity.Cinemachine.CinemachineCamera>();
+            playerCam = UnityEngine.Object.FindFirstObjectByType<Unity.Cinemachine.CinemachineCamera>();
             if (playerCam != null)
             {
                 playerCam.Follow = this.transform;
@@ -161,7 +189,19 @@ public class PlayerController : NetworkBehaviour
 
                 // El servidor le da la orden a ese celular de salir volando
                 targetController.ApplyPushClientRpc(direction, clientRpcParams);
+
+                // NUEVO: Puntuación por empuje exitoso
+                Score.Value += 5;
             }
+        }
+    }
+
+    // Método de utilidad para sumar puntos por supervivencia
+    public void AddSurvivalPoints(int points)
+    {
+        if (IsServer)
+        {
+            Score.Value += points;
         }
     }
 
@@ -170,6 +210,9 @@ public class PlayerController : NetworkBehaviour
     private void ApplyPushClientRpc(Vector3 direction, ClientRpcParams clientRpcParams = default)
     {
         if (!IsOwner) return; // Verificamos por seguridad que sea mi propio personaje
+
+        // Registramos que el jugador recibió un impacto para anular el logro
+        hasBeenPushed.Value = true;
 
         // Detenemos cualquier movimiento previo para que el golpe se sienta en seco
         rb.linearVelocity = Vector3.zero;
